@@ -1,5 +1,8 @@
-class Leg():
-    def __init__(self, name, hipServo, kneeServo, ankleServo):
+import RoboBrain
+
+class Leg(RoboBrain):
+    def __init__(self, name, hipServo, kneeServo, ankleServo, anlgeOffsets=[0 ,0, 0]):
+        
         self.name = name
         self.hipServo = hipServo
         self.kneeServo = kneeServo
