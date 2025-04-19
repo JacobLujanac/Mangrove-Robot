@@ -1,4 +1,4 @@
-class RoboBrain:
+class Robot:
     def __init__(self,n_legs,z_root):
 
         self.n_legs = n_legs
