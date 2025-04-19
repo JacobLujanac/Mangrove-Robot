@@ -15,7 +15,7 @@ class Motor:
         # Joint Properties   
         #####################
 
-        # Convert Coord Systems
+        # Offset from Coord System
 
         offset = {
         "Hip": {
@@ -28,8 +28,8 @@ class Motor:
           "L": -180
           "LF": 135
         },
-        "Knee": , 
-        "Ankle": (0,135),
+        "Knee": -90, 
+        "Ankle": 0,
         }
 
         # Angle Limits
@@ -39,15 +39,6 @@ class Motor:
         "Ankle": (0,135),
         }
 
-      
-      
-      
-    joint_limits = {
-    "Hip": (-90,90),
-    "Knee": (-90,135), 
-    "Ankle": (0,135),
-    
-    }
         
         # Assign to pin
         num = index + 1
@@ -88,8 +79,11 @@ class Motor:
     def setDeg(self,deg):
         
             
-        # Degree Limits
-        minLim, maxLim = jointType_limits[self.jointType]
+        # Enforce Joint Constraints
+        minLim, maxLim = RoM[self.jointType]
+
+        # Apply angle offset
+        deg = deg - offset[self.jointType]
         
         
         # Constrain Input Degree
@@ -105,4 +99,4 @@ class Motor:
         self.s.value(deg)
         
     def getDeg(self):
-        return self.s.value() 
+        return self.s.value() + offset[self.jointType]
