@@ -1,4 +1,4 @@
-import RoboBrain
+import Robot
 
 class Leg(RoboBrain):
     def __init__(self, name, hipServo, kneeServo, ankleServo, anlgeOffsets=[0 ,0, 0]):
