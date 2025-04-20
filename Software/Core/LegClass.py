@@ -43,3 +43,39 @@ class Leg:
             end=[r, z_clearance],
             space="rz"
         )
+
+def hip_swing_planted(self, end_pos, traj_fn=lin_trajectory, ease_fn=ease_out_quad):
+    """
+    Moves the hip joint in the xy-plane while keeping the foot planted.
+
+    Parameters:
+        end_pos (array-like): [x, y] target foot location in the xy-plane
+        traj_fn (callable): trajectory function (default: linear)
+        ease_fn (callable): easing function (default: ease_out_quad)
+
+    Returns:
+        ndarray: joint angles [theta_hip, theta_knee, theta_ankle] for each step
+    """
+    from brain.trajectory import gen_trajectory  # optional: import at top of file
+    from brain.kinematics import ik_xyz, closest_solution
+
+    # Current foot position
+    start_pos = self.fk_xy()
+
+    # Generate Cartesian trajectory
+    steps = self.steps
+    xy_traj = gen_trajectory(traj_fn, ease_fn, start_pos, end_pos, steps)
+
+    # Solve for joint angles at each step
+    all_joint_solutions = []
+    for coord in xy_traj:
+        sol = self.robot.ik_xyz(np.array([coord]), self)
+        all_joint_solutions.append(sol)
+
+    all_joint_solutions = np.array(all_joint_solutions)  # (n_steps, 1, 3)
+
+    # Initial angles as reference for smoothest solution
+    initial_angles = [self.theta_hip, self.theta_knee, self.theta_ankle]
+
+    return closest_solution(all_joint_solutions, initial_angles)
+
