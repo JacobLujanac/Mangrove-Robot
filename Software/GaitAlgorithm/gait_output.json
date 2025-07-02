@@ -1,0 +1,24 @@
+{
+    "robot_pose": {
+        "x": 17,
+        "y": 20,
+        "yaw": 0,
+        "width": 13,
+        "height": 18.679,
+        "balance_clearance": 2
+    },
+    "foot_positions": {
+        "LF": [
+            10.0,
+            22.0
+        ],
+        "RM": [
+            14.0,
+            23.0
+        ],
+        "LB": [
+            18.0,
+            22.0
+        ]
+    }
+}
