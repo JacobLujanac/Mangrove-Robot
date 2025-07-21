@@ -1,18 +1,31 @@
 import sys, ujson, select, time, config
 from MotorClass_Servo2040 import Motor
 from LegClass_Servo2040 import Leg
+import config
+from machine import Pin
 
 print("[Servo2040] Booted")
+
+# Turn on Relay
+relay_pin.value(1)
+time.sleep(0.5)
 
 # === SETUP LEGS === #
 legs = []
 LEG_NAMES = config.LEG_NAMES
 
+# Initialize Motors
 for i in range(len(LEG_NAMES)):
     name = LEG_NAMES[i]
+    
     servo_indices = [i*3, i*3 + 1, i*3 + 2]
-    side = "Left" if name[0] == "L" else "Right"
-    legs.append(Leg(name, servo_indices, side))
+    
+    if name[0] == "L":
+        side = "Left"
+    if name[0] == "R":
+        side = "Right" 
+    
+    legs.append(Leg(name, servo_indices,side))
 
 # === Helper === #
 def get_leg_by_name(name):
