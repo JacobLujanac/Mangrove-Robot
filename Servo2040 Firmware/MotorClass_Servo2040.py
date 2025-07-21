@@ -3,64 +3,84 @@ import config
 
 
 class Motor:
-    def __init__(self, index, joint_type, leg_name, invert = False, side = "Left"):
+    def __init__(self, index, joint_type, leg_name, invert=False, side="Left"):
         self.joint_type = joint_type
         self.leg_name = leg_name
         self.invert = invert
         self.side = side
-        
+
         self.JOINT_OFFSETS = config.JOINT_OFFSETS
+        self.GLOBAL_OFFSETS = config.GLOBAL_OFFSETS
         self.ROM_LIMITS = config.ROM_LIMITS
+
+        # Offset between global robot coordinate frame and local hip mount orientation
+        self.hip_offset = self.GLOBAL_OFFSETS["Hip"][leg_name] if joint_type == "Hip" else 0
+
+        # Mechanical mounting offset for aligning servo position with physical joint angle
+        self.offset = self.JOINT_OFFSETS[joint_type][leg_name]
         
 
-        self.offset = (
-            self.JOINT_OFFSETS[joint_type][leg_name]
-            if joint_type == "Hip" else self.JOINT_OFFSETS[joint_type]
-        )
         self.rom_min, self.rom_max = self.ROM_LIMITS[joint_type]
 
-        # Initialize motors
+        # Initialize and calibrate servo
         self.servo = Servo(getattr(servo2040, f"SERVO_{index + 1}"))
-
-        # Setup calibration
-        # NEED TO INCLUDE 180 AND 270
         cal = self.servo.calibration()
-        cal.first_value(-135)
-        cal.last_value(135)
+        if joint_type == "Hip" or (self.leg_name == "LB" and self.joint_type == "Ankle"):
+            cal.first_value(-135)
+            cal.last_value(135)
+        
+        else:
+            cal.first_value(-90)
+            cal.last_value(90)
         cal.limit_to_calibration(True, True)
         self.servo.calibration(cal)
-        self.set_deg(0)
 
-    def set_deg(self, deg):
-        
-        
-            
-        
-            
        
         
+
+    def set_deg(self, deg):
+        # Convert world-space joint angle to servo-space command
+        if self.joint_type == "Hip":
+            deg -= self.hip_offset
+            #print(f"{self.name}: {deg}")
+
+        deg_adj = deg - self.offset
+        #print(f"{self.name}: {deg_adj}")
         
-        #Convert from Worldspace coordinates to Motor cordinates
-        if self.invert:
-            deg = -deg
-        if (self.side == "Right") and (self.joint_type != "Hip"):
-            deg = -deg
+        if self.joint_type == "Hip":
+            deg_adj = -deg_adj # Hip servos are oriented to face the -z axis
+        else:
+            if self.invert:
+                deg_adj = -deg_adj       
+            if self.side == "Right":
+                deg_adj = -deg_adj
+        
             
-        deg_adj = deg + self.offset
+        #print(f"{self.name}: {deg}")
         self.servo.value(deg_adj)
-        
-        
+
     def get_deg(self):
-            
-        deg_adj = self.servo.value() - self.offset
+        # Convert servo-space reading back to world-space joint angle
+        deg = self.servo.value()
         
-        
-        if self.invert:
-            deg_adj = -deg_adj
-        if (self.side == "Right") and (self.joint_type != "Hip"): #Degree inversion is to compensate for mirrored rz plane (hip operates on xy plane, so not effected)
-            deg_adj = -deg_adj
+        if self.joint_type == "Hip":
+            deg = -deg
             
+        else:
+            if self.side == "Right":
+                deg = -deg
+            if self.invert:
+                deg = -deg
+                
+        #print(f"{self.name}: {deg}")
+        
+        if self.joint_type == "Hip":
+            deg += self.hip_offset
+        
+        deg_adj = deg + self.offset          
+        #print(f"{self.name}: {deg_adj}")
         return deg_adj
+
 
 
 
