@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
-import random
-import json
-import os
-import drawConfig as cfg
+import random, json, os, sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+import Software.Core.config as cfg
 
 # === PARAMETERS ===
 n = 14               # Grid rows
@@ -96,6 +95,5 @@ def save_map_data(map_data, json_path="map_data.json", image_path="mangrove_map.
 
 # === RUN SCRIPT ===
 if __name__ == "__main__":
-    print(f"P_root = {P_root:.2f}")
     map_data = generate_grid(n, m, d, P_root, P_rootTall, N)
     save_map_data(map_data)

@@ -11,18 +11,18 @@ class Leg:
     def __init__(self, robot,name, servo_ids):
         self.name = name
         self.servo_ids = servo_ids
-        self.limb_lengths = robot.limb_lengths
+        self.limb_parameters = config.LIMB_PARAMETERS
         self.joint_ROM_limits = robot.joint_ROM_limits
         self.hip_offset = config.HIP_OFFSETS[name]
         self.hip_pos = config.HIP_POS[name]
         self.joint_angles = {"hip": self.hip_offset , "knee": 70, "ankle": -90} # Raise legs up to avoid colliding with table
         self.steps =  config.steps
-        
+        self.robot = robot
         self.z_root = config.z_root
         self.z_bodyClearance = config.z_bodyClearance
         self.plant_status = None
         
-    
+     
     def update_current_angles(self, angles):
 
         self.joint_angles["hip"] = angles[0]

@@ -1,22 +1,21 @@
 from Software.Core.Leg import *
 import Software.Core.config as config
 from Software.Comms.trajectory_sender import *
-from Software.GeneralKinematics.trajectory import parabolic_trajectory, lin_trajectory, ease_in_quad
+from Software.GeneralKinematics.trajectory import lin_trajectory, ease_in_quad
 import numpy as np
 from functools import partial
 
 class Robot:
-    def __init__(self, servo_interface):
-        self.servo_interface = servo_interface
+    def __init__(self):
+        #self.servo_interface = servo_interface
         self.z_root = config.z_root
         self.z_bodyClearance = config.z_bodyClearance
         self.body_height = config.body_height
         self.legs = {}
-        self.joint_ROM_limits = config.joint_ROM_limits
-        self.limb_lengths = config.limb_lengths
-        self.x_global = 0
-        self.y_global = 0
-        self.yaw = 0
+        self.joint_ROM_limits = config.JOINT_ROM_LIMITS
+        self.x_global = 15
+        self.y_global = 15
+        self.yaw = 50
         leg_configs = {
             "RB": {"hip": "L1_hip", "knee": "L1_knee", "ankle": "L1_ankle"},
             "LB": {"hip": "L2_hip", "knee": "L2_knee", "ankle": "L2_ankle"},
@@ -32,9 +31,10 @@ class Robot:
         for name, servos in leg_configs.items():
             self.legs[name] = Leg(robot=self, name=name, servo_ids=servos)
 
-        self.defaultStance = [(self.limb_lengths["femur"] + self.limb_lengths["tibia"]) * 0.5, -1 * (self.z_root + self.z_bodyClearance)]
+        self.defaultStance = [(self.legs["RF"].limb_parameters["l_femur"] + self.legs["RF"].limb_parameters["l_tibia_eff"]) * 0.5, -1 * (self.z_root + self.z_bodyClearance)]
 
-        self.standUp()
+        
+        #self.standUp()
         print('Standing Up')
 
     def get_leg(self, name):

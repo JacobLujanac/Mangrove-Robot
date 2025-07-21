@@ -12,6 +12,8 @@ class DegMath:
     @staticmethod
     def arccos(x): return np.degrees(np.arccos(x))
     @staticmethod
+    def arctan(tan): return np.degrees(np.arctan(tan))
+    @staticmethod
     def arctan2(y, x): return np.degrees(np.arctan2(y, x))
 
 # Easing functions

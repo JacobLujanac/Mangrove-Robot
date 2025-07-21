@@ -3,8 +3,9 @@
 steps = 100
 
 # Environment
-z_root= 7 #[cm] (1 Peg )
+z_root= 7 # Avg Root Height[cm] (1 Peg)
 z_bodyClearance = 6 #[cm]
+d_r = 1 # Root Diameter [cm] 
 
 # Robot Specs
 body_height = 5 #[cm]
@@ -19,22 +20,36 @@ right = body_width / 2
 middle = 0
 center = 0
 
+r_min = 5 #cm
+r_max = 15 #cm
 
+# l_subRoot extrema (spans from entry 1 to 2)
+l_subRoot_r_min = [r_min, 10.08] #cm
+l_subRoot_r_max = [r_max, 14.22] #cm
+
+l_subRoot_max = l_subRoot_r_min[1] - l_subRoot_r_min[0] #cm
     
 
 # ROM
-joint_ROM_limits = {
+JOINT_ROM_LIMITS = {
             "Hip": (-135, 135),
             "Knee": (-135, 135),
             "Ankle": (-135, 135),
         }
 
 # Limb Lengths [cm]
-limb_lengths = {
-            "coxa": 5.566,
-            "femur": 8.679,
-            "tibia": 12.979
+LIMB_PARAMETERS = {
+            "l_coxa": 5.566,
+            "l_femur": 8.679,
+            "l_tibia_eff": 12.979, # Line from ankle to foot
+            "l_tibia_top": 6.573,
+            "theta_tibia_bend": -52.53, # 
+            "theta_tibia_top": 28.87, # Angle between top segment of tibia and tibia_eff
+            "l_tibia_bottom": 7.886
+
         }
+
+
 
 
 LEG_NAMES = ["RF","RM","RB","LF","LM","LB"]
@@ -43,6 +58,10 @@ TRIPOD_LEGS = {
             "A": ["RF", "LM", "RB"],
             "B": ["LF", "RM", "LB"]
             }
+
+IDEAL_BOS = {"F": [0.8 * r_max, 110],
+             "M": [0.4 * r_max, 165],
+             "B": [0.3 * r_max, 45]} #[r,theta]
 
 
 HIP_OFFSETS = {
@@ -60,12 +79,9 @@ HIP_POS = { #Origin: Robot's Center of Gravity
     "LB":[left, back],
 }
 
-r_min = 3.0 #cm
-r_max = 18.0 #cm
 
-l_subRootMax = 7.5 #cm
 
-balance_clearance = 2 #cm
+balance_clearance = 1 #cm
 
 color_dict = {
     "Target": "#ffdc00",

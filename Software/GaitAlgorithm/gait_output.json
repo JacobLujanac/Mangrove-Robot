@@ -7,7 +7,7 @@
         "height": 18.679,
         "balance_clearance": 2
     },
-    "foot_positions": {
+    "foot_positions_world": {
         "LF": [
             10.0,
             22.0

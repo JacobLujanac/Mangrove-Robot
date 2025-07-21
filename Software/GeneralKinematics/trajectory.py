@@ -8,7 +8,7 @@ from Software.Core.math_utils import *
 def gen_trajectory(traj_fn, ease_fn, start_pos, end_pos, steps, leg, move_type = "moveFeet"):
     traj_global = traj_fn(leg, start_pos, end_pos, steps)
 
-    traj_local = convert_traj(move_type, leg, traj_global)
+    traj_local = convert_traj(move_type, leg, *traj_global)
 
     eased_coords = []
     for i in range(steps):
@@ -37,9 +37,9 @@ def convert_traj(move_type, leg, x, y, psi = None):
             
             x_converted = leg.fk_xyz()[0] - x_rot #Translate from hip to foot reference frame, and invert trajectory
             y_converted = leg.fk_xyz()[1] - y_rot
-            xy_converted = np.hstack(x_converted, y_converted)
+            xy_converted = np.hstack((x_converted, y_converted))
     else:
-         xy_converted = np.hstack(x_rot, y_rot)
+         xy_converted = np.hstack((x_rot, y_rot))
 
     return xy_converted
 

@@ -15,8 +15,8 @@ def fk_rz(leg):
     theta_ankle = leg.joint_angles["ankle"]
     
         
-    l_femur = leg.limb_lengths["femur"]
-    l_tibia = leg.limb_lengths["tibia"]
+    l_femur = leg.limb_parameters["l_femur"]
+    l_tibia = leg.limb_parameters["l_tibia_eff"]
     
     r = (l_femur * DegMath.cos(theta_knee) + l_tibia * DegMath.cos(theta_knee + theta_ankle))
     z = (l_femur * DegMath.sin(theta_knee) + l_tibia * DegMath.sin(theta_knee + theta_ankle))
@@ -31,12 +31,9 @@ def ik_rz(leg, rz_foot):
     r = rz_foot[:, 0]  
     z = rz_foot[:, 1]
     
-    if leg.name == "LM":
-        print(f"r: {r}")
-        print(f"z: {z}")
-    
-    l_femur = leg.limb_lengths["femur"]
-    l_tibia = leg.limb_lengths["tibia"]
+        
+    l_femur = leg.limb_parameters["l_femur"]
+    l_tibia = leg.limb_parameters["l_tibia_eff"]
     
     d = np.sqrt(r**2 + z**2) 
     D = (d**2 - l_femur**2 - l_tibia**2) / (2 * l_femur * l_tibia) 
@@ -45,14 +42,13 @@ def ik_rz(leg, rz_foot):
         raise ValueError("One or more target points are out of reach.")
 
     theta_ankle = -DegMath.arccos(D)
-    
+   
     k1 = l_femur + l_tibia * DegMath.cos(theta_ankle)  
     k2 = l_tibia * DegMath.sin(theta_ankle)
     
     theta_knee = DegMath.arctan2(z, r) - DegMath.arctan2(k2, k1) 
   
     solution = np.stack([theta_knee, theta_ankle], axis=1)  
-
 
     return solution 
 

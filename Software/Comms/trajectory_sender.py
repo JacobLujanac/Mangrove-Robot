@@ -1,6 +1,6 @@
 import json
 import time
-import serial
+#import serial
 
 class Servo2040Interface:
     def __init__(self, serial_port="/dev/ttyACM0", baudrate=115200):

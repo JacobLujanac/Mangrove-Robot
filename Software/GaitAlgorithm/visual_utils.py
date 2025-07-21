@@ -1,17 +1,17 @@
-# visual_utils.py
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.patches import Circle
 import numpy as np
-import drawConfig as cfg
-from robot_utils import *
+from Software.GaitAlgorithm.robot_utils import *
 from shapely.plotting import plot_polygon
 from shapely.geometry import Polygon as ShapelyPolygon
+from shapely.affinity import translate
 from matplotlib.patches import Polygon as MplPolygon
-from GaitAlgorithm import robot_pose, tripod_legs
-import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-import Software.Core.config as config
+import Software.GaitAlgorithm.robot_utils as robot_utils
+
+import Software.Core.config as cfg
 fullLegNames = {
     "RF": "Right Front",
     "LF": "Left Front",
@@ -25,18 +25,11 @@ r_min = cfg.r_min
 r_max = cfg.r_max
 r_clearance = cfg.balance_clearance
 
-yaw = robot_pose["yaw"]
-R = np.array([
-        [np.cos(yaw), -np.sin(yaw)],
-        [np.sin(yaw),  np.cos(yaw)]
-    ])
-rel_hip_positions = {
-    leg: R @ np.array(cfg.relative_hip_positions[leg])
-    for leg in tripod_legs
-}
+
+
 def draw_robot(ax, pose):
     x, y = pose["x"], pose["y"]
-    w, h = pose["width"], pose["height"]
+    w, h = pose["width"], pose["length"]
     yaw = pose["yaw"]
 
 
@@ -61,13 +54,13 @@ def draw_robot(ax, pose):
     circle = plt.Circle((x, y), r_clearance, color='purple', label='Balance Clearance', zorder=5)
     ax.add_patch(circle)
 
-def draw_legs(ax, hips_dict, feet_dict, ends = True,alphaVal = 1):
+def draw_legs(ax, hips_dict, feet_dict, show_ends = True,alphaVal = 1):
     for name in hips_dict:
         # Get hip and foot positions
         hx, hy = hips_dict[name]
         fx, fy = feet_dict[name]
 
-        if ends == True:
+        if show_ends == True:
             # Draw hip
             ax.plot(hx, hy,
                     color=cfg.color_dict["Robot"],
@@ -88,20 +81,23 @@ def draw_legs(ax, hips_dict, feet_dict, ends = True,alphaVal = 1):
         ax.plot([hx, fx], [hy, fy],
                 color= cfg.color_dict[name],
                 linewidth=4.5,
-                zorder=5,
+                zorder=4,
                 alpha=alphaVal,
                 )
         ax.plot([hx, fx], [hy, fy],
                 color=cfg.color_dict["Robot"],
                 linewidth=3,
-                zorder=4,
+                zorder=5,
                 alpha=alphaVal,
                 )
 
-def draw_hip_vectors(ax,start_dict,alphaVal = 1, reverse = False):
+def draw_hip_vectors(ax,robot_pose,start_dict,alphaVal = 1, reverse = False):
+
+    hip_pos = robot_utils.get_hip_positions(robot_pose, robot_pose["tripod_legs"], mode = "Relative")
+
     for name in start_dict:
         # Get hip and foot positions
-        hx, hy = rel_hip_positions[name]
+        hx, hy = hip_pos[name]
         if reverse == True:
             hx, hy = -hx, -hy       
         ox, oy = start_dict[name]
@@ -112,13 +108,13 @@ def draw_hip_vectors(ax,start_dict,alphaVal = 1, reverse = False):
         ax.plot([ox, ox+hx], [oy, oy+hy],
                 color= cfg.color_dict["Robot"],
                 linewidth=4.5,
-                zorder=7,
+                zorder=4,
                 alpha= alphaVal,
                 )
         ax.plot([ox, ox+hx], [oy, oy+hy],
                 color=cfg.color_dict[name],
                 linewidth=3,
-                zorder=7,
+                zorder=5,
                 alpha=alphaVal,
                 )
 
@@ -126,13 +122,35 @@ def draw_hip_vectors(ax,start_dict,alphaVal = 1, reverse = False):
 
 
 
-def draw_rom(ax, center_pos, leg_name):
-    x, y = center_pos
+def draw_rom(ax, center_pos, rom_geom, leg_name):
+    
     color = cfg.color_dict[leg_name]
-    outer = Circle((x, y), r_max, color=color, alpha=0.3, zorder=1)
-    inner = Circle((x, y), r_min, color='white', zorder=2)
-    ax.add_patch(outer)
-    ax.add_patch(inner)
+    
+
+    #Draw outer boundary 
+    
+    if rom_geom.geom_type == "MultiPolygon":
+        polygons = list(rom_geom.geoms)
+        
+    else:
+        polygons = [rom_geom]
+
+    for polygon in polygons :   
+        coords = np.array(polygon.exterior.coords)
+        patch = MplPolygon(coords, closed=True,
+                        facecolor= color, edgecolor = color,
+                        alpha=0.3, zorder=1)
+        ax.add_patch(patch)
+
+        # Draw interior holes (if any)
+    
+        for interior in polygon.interiors:
+            hole_coords = np.array(interior.coords)
+            hole = MplPolygon(hole_coords, closed=True,
+                            facecolor='white', edgecolor='white',
+                            zorder=4)
+            ax.add_patch(hole)
+   
 
 
 def draw_bos_triangle(ax, feet_dict, leg_names):
@@ -183,19 +201,18 @@ def draw_tripod_leg_roms(tripod_feet, root_points):
     plt.tight_layout()
     plt.show(block=False)
 
-def draw_tripod_leg_roms_from_result(planner_result, tripod_name="A"):
+def draw_tripod_leg_roms_from_result(planner_result, tripod_name):
     """
     Draws 3 side-by-side hip ROM plots for the selected tripod,
     using data from planner_result. Includes legs drawn with same styling as global plot.
     """
-    tripods = {
-        "A": ["LF", "RM", "LB"],
-        "B": ["RF", "LM", "RB"]
-    }
+    tripods = cfg.TRIPOD_LEGS
 
     leg_names = tripods[tripod_name]
-    foot_positions = planner_result["foot_positions"]
+    foot_positions_world = planner_result["foot_positions_world"]
+    hip_positions_world = planner_result["hip_positions_world"]
     root_points = planner_result["roots"]
+    translation_roms = planner_result["translation_roms"]
 
     fig, axs = plt.subplots(1, 3, figsize=(18, 6))
 
@@ -209,34 +226,42 @@ def draw_tripod_leg_roms_from_result(planner_result, tripod_name="A"):
         ax.axhline(0, color='black', linewidth=1, linestyle='--')
         ax.axvline(0, color='black', linewidth=1, linestyle='--')
 
-        # Local transform
-        foot_pos = np.array(foot_positions[leg_name])
+        # Feet Relative to Hips
+        foot_hip = np.array(foot_positions_world[leg_name]) - np.array(hip_positions_world[leg_name])
         
-
+        # Hips Relative to World
+        hip_world = np.array(hip_positions_world[leg_name])
+        
         # ROM centered at foot
-        draw_rom(ax, foot_pos, leg_name)
+        draw_rom(ax, foot_hip, translation_roms[leg_name]["ROM"], leg_name)
 
-        # === Draw Leg ===
+        # === Draw Leg === #
         hips_dict = {leg_name: (0, 0)}  # Hip at origin
-        feet_dict = {leg_name: tuple(foot_pos)} 
+        feet_dict = {leg_name: tuple(foot_hip)} 
         draw_legs(ax,hips_dict,feet_dict)
        
+       # === Draw Roots === #
+        all_roots = planner_result["roots"]
 
-        # Roots transformed into local frame
-        local_roots = [(rx - foot_pos[0], ry - foot_pos[1]) for (rx, ry) in root_points]
+        local_roots = [(rx - hip_world[0], ry - hip_world[1]) for (rx, ry) in all_roots]
+        local_collidable_roots = planner_result["translation_roms"][leg_name]["roots_inside"]
         if local_roots:
-            lx, ly = zip(*local_roots)
-            #ax.scatter(lx, ly, color='black', marker='^', s=10, zorder=3)
+            rx, ry = zip(*local_roots)
+            ax.scatter(rx, ry, color='black', alpha = 0.3, marker='^', s=10, zorder=3)
+
+        if local_collidable_roots:
+            rcx, rcy = zip(*local_collidable_roots)
+            ax.scatter(rcx, rcy, color='black', alpha = 1, marker='^', s=10, zorder=5)
 
         ax.set_xlim(-r_max - 5, r_max + 5)
         ax.set_ylim(-r_max - 5, r_max + 5)
-        #ax.legend()
+        ax.legend()
 
     plt.tight_layout()
     plt.show(block=False)
 
 
-def draw_viable_translation_zone(foot_positions, tripod_legs, viable_zone, robot_pose):
+def draw_viable_translation_zone(planner_result):
     """
     Draws all 3 hip ROMs and their overlap in a single figure.
     Used to visualize the viable translation zone.
@@ -244,47 +269,64 @@ def draw_viable_translation_zone(foot_positions, tripod_legs, viable_zone, robot
     import matplotlib.pyplot as plt
     from matplotlib.patches import Circle
     from shapely.geometry import mapping
+    foot_positions_world = planner_result["foot_positions_world"]
+    tripod_legs = planner_result["robot_pose"]["tripod_legs"]
+    viable_zone = planner_result["viable_zone"]
+    robot_pose = planner_result["robot_pose"]
+    translation_roms = planner_result["translation_roms"]
 
+    feet_CoG = {
+    leg: np.array(foot_positions_world[leg]) - np.array([robot_pose["x"],robot_pose["y"]])
+    for leg in tripod_legs
+    }
+
+    hip_positions_world = robot_utils.get_hip_positions(robot_pose, tripod_legs, mode = "Global")
     fig, ax = plt.subplots(figsize=(6, 6))
     feet_hip = {
-    leg: np.array(np.array(foot_positions[leg]) - np.array(rel_hip_positions[leg]))
+    leg: np.array(np.array(foot_positions_world[leg]) - np.array(hip_positions_world[leg]))
     for leg in tripod_legs
     }
 
     # Draw Legs
     for leg in tripod_legs:
         hips_dict = {leg: (0, 0)}  # Hip at origin
-        draw_legs(ax,hips_dict,feet_hip, ends = False)
+        draw_legs(ax,hips_dict,feet_hip, show_ends = False)
         
 
         # Draw ROMs
         feet = feet_hip[leg]
-        draw_rom(ax, feet, leg)
+        rom = translation_roms[leg]["ROM"]
+        draw_rom(ax, feet, rom, leg)
 
         # Draw hip vectors
-        draw_hip_vectors(ax,foot_positions,reverse=True)
+        draw_hip_vectors(ax,robot_pose,feet_CoG,reverse=True)
         
 
-
+    if viable_zone.geom_type == "MultiPolygon":
+        polygons = list(viable_zone.geoms)
+        
+    elif not viable_zone.is_empty :
+        polygons = [viable_zone]
     #Draw outer boundary
-    if not viable_zone.is_empty:
-        coords = np.array(viable_zone.exterior.coords)
-        patch = MplPolygon(coords, closed=True,
-                           facecolor= '#f9f9f9', edgecolor = 'black',
-                           alpha=1, zorder=1)
+    
+        for polygon in polygons:
+            coords = np.array(polygon.exterior.coords)
+            patch = MplPolygon(coords, closed=True,
+                            facecolor= "#28a17f", edgecolor = 'black',
+                            alpha=1, zorder=1)
 
-        ax.add_patch(patch)
+            ax.add_patch(patch)
 
         # Draw interior holes (if any)
-        for interior in viable_zone.interiors:
-            hole_coords = np.array(interior.coords)
-            hole = MplPolygon(hole_coords, closed=True,
-                              facecolor='white', edgecolor='black',
-                              zorder=4)
-            ax.add_patch(hole)
+        for polygon in polygons:
+            for interior in polygon.interiors:
+                hole_coords = np.array(interior.coords)
+                hole = MplPolygon(hole_coords, closed=True,
+                                facecolor='white', edgecolor='black',
+                                zorder=4)
+                ax.add_patch(hole)
     # Draw Base of Support Triangle
-    feet_world = get_feet_world_positions(foot_positions,rel_hip_positions,robot_pose)
-    draw_bos_triangle(ax, foot_positions, tripod_legs)
+    draw_bos_triangle(ax, feet_CoG, tripod_legs)
 
     # Draw origin dot
     ax.plot(0, 0, 'ko', markersize=8, label='Stacked Hips/CoG', zorder=6)
