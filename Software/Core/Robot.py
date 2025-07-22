@@ -7,7 +7,7 @@ from functools import partial
 
 class Robot:
     def __init__(self):
-        #self.servo_interface = servo_interface
+        self.servo_interface = servo_interface
         self.z_root = config.z_root
         self.z_bodyClearance = config.z_bodyClearance
         self.body_height = config.body_height
