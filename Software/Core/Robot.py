@@ -34,7 +34,7 @@ class Robot:
         self.defaultStance = [(self.legs["RF"].limb_parameters["l_femur"] + self.legs["RF"].limb_parameters["l_tibia_eff"]) * 0.5, -1 * (self.z_root + self.z_bodyClearance)]
 
         
-        #self.standUp()
+        self.standUp()
         print('Standing Up')
 
     def get_leg(self, name):
